@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Search, Heart, LoaderCircle, Compass, Share2 } from "lucide-react";
 
-const API_URL = "http://localhost:8000/api/v1";
+const API_URL = "https://connecthub-backend-zf8y.onrender.com/api/v1";
 
 function Explore() {
     const navigate = useNavigate();

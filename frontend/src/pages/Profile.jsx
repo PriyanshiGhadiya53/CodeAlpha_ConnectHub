@@ -25,7 +25,7 @@ import {
 import Sidebar from "../components/Sidebar.jsx";
 import RightSidebar from "../components/RightSidebar.jsx";
 
-const API_URL = "http://localhost:8000/api/v1";
+const API_URL = "https://connecthub-backend-zf8y.onrender.com/api/v1";
 
 function Profile() {
   const navigate = useNavigate();

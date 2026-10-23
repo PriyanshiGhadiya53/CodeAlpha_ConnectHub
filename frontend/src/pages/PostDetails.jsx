@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Send, MessageCircle, Trash2, Pencil, X } from "lucide-react";
 
-const API_URL = "http://localhost:8000/api/v1";
+const API_URL = "https://connecthub-backend-zf8y.onrender.com/api/v1";
 
 function PostDetails() {
   const { postId } = useParams();

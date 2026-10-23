@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ImagePlus, ArrowLeft, X, LoaderCircle } from "lucide-react";
 
-const API_URL = "http://localhost:8000/api/v1";
+const API_URL = "https://connecthub-backend-zf8y.onrender.com/api/v1";
 
 function CreatePost() {
   const navigate = useNavigate();

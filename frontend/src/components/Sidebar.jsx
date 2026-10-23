@@ -11,7 +11,7 @@ import {
   PlusSquare,
 } from "lucide-react";
 
-const API_URL = "http://localhost:8000/api/v1";
+const API_URL = "https://connecthub-backend-zf8y.onrender.com/api/v1";
 
 const menuItems = [
   { name: "Home", icon: Home, path: "/" },

@@ -14,7 +14,7 @@ function LogoutButton() {
 
     try {
       const response = await fetch(
-        "http://localhost:8000/api/v1/user/logout",
+        "https://connecthub-backend-zf8y.onrender.com/api/v1/user/logout",
         {
           method: "POST",
           credentials: "include",

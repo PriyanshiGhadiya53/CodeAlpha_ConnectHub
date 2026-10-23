@@ -10,8 +10,8 @@ import {
   UserRound,
 } from "lucide-react";
 
-const API_URL = "http://localhost:8000/api/v1";
-const SOCKET_URL = "http://localhost:8000";
+const API_URL = "https://connecthub-backend-zf8y.onrender.com/api/v1";
+const SOCKET_URL = "https://connecthub-backend-zf8y.onrender.com";
 
 function Messages() {
   const navigate = useNavigate();
