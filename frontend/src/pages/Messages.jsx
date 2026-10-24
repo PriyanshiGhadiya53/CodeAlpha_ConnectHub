@@ -181,9 +181,8 @@ function Messages() {
   };
 
   return (
-    <div className="flex h-[100dvh] overflow-hidden bg-[#F3ECFF] p-0 text-gray-800 sm:p-6">
-      <div className="mx-auto flex w-full max-w-[1500px] gap-4 overflow-hidden rounded-[32px] border border-purple-200/60 bg-white shadow-xl">
-
+    <div className="flex h-[100dvh] w-screen overflow-hidden bg-[#F3ECFF] p-0 text-gray-800 sm:p-6">
+      <div className="mx-auto flex h-full w-full max-w-[1500px] gap-0 overflow-hidden bg-white sm:rounded-[32px] sm:border sm:border-purple-200/60 sm:shadow-xl">
         {/* LEFT PANEL - USERS LIST & SEARCH */}
         <div
           className={`${selectedUser ? "hidden md:flex" : "flex"
@@ -277,7 +276,7 @@ function Messages() {
         {/* RIGHT PANEL - CHAT AREA */}
         <div
           className={`${!selectedUser ? "hidden md:flex" : "flex"
-            } min-h-0 min-w-0 flex-1 flex-col bg-[#F3ECFF]/30`}
+            } h-full flex-1 flex-col bg-[#F3ECFF]/30 min-w-0`}
         >
           {selectedUser ? (
             <>
@@ -315,7 +314,7 @@ function Messages() {
                 </div>
               </div>
 
-              <div className="flex-1 space-y-3 overflow-y-auto p-4 sm:p-6">
+              <div className="flex-1 space-y-3 overflow-y-auto p-4 sm:p-6 min-h-0">
                 {loadingChat ? (
                   <div className="flex h-full items-center justify-center text-purple-600">
                     <LoaderCircle className="animate-spin" size={28} />
@@ -365,8 +364,10 @@ function Messages() {
               </div>
 
               <form
+
                 onSubmit={handleSend}
-                className="sticky bottom-0 flex shrink-0 items-center gap-2 border-t border-purple-100 bg-white p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:gap-3 sm:p-4"            >
+                className="flex shrink-0 items-center gap-2 border-t border-purple-100 bg-white p-3 pb-[max(1rem,env(safe-area-inset-bottom))] sm:gap-3 sm:p-4"
+              >
                 <input
                   type="text"
                   value={newMessage}
