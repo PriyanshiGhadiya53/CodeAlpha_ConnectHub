@@ -5,13 +5,16 @@ import {
   UserRound, Pencil, Share2, CalendarDays, MapPin,
   Link as LinkIcon, Grid3X3, Heart, ImagePlus,
   LoaderCircle, X, Camera, Bookmark, ChevronRight,
-  LogOut, CheckCircle2, AlertCircle,
+  LogOut, CheckCircle2, AlertCircle, UserPlus, UserCheck,
 } from "lucide-react";
 
 import Sidebar from "../components/Sidebar.jsx";
 import RightSidebar from "../components/RightSidebar.jsx";
 
 const API_URL = "https://connecthub-backend-zf8y.onrender.com/api/v1";
+
+const getId = (value) =>
+  String(value?._id || value?.id || value || "");
 
 function Profile() {
   const navigate = useNavigate();
@@ -20,15 +23,19 @@ function Profile() {
   const toastTimerRef = useRef(null);
 
   const [user, setUser] = useState(null);
+  const [currentUser, setCurrentUser] = useState(null);
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [isOwnProfile, setIsOwnProfile] = useState(!userName);
+  const [isOwnProfile, setIsOwnProfile] = useState(false);
 
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [avatarSaving, setAvatarSaving] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
+
+  const [following, setFollowing] = useState(false);
+  const [followLoading, setFollowLoading] = useState(false);
 
   const [activeTab, setActiveTab] = useState("posts");
   const [likedPosts, setLikedPosts] = useState([]);
@@ -64,36 +71,60 @@ function Profile() {
       setEditing(false);
       setConnectionType("");
 
-      // Current profile
-      const userRes = await fetch(
-        userName
-          ? `${API_URL}/user/profile/${encodeURIComponent(userName)}`
-          : `${API_URL}/user/me`,
-        { credentials: "include" }
-      );
+      // 1. Login user ko alag se fetch karo.
+      const meRes = await fetch(`${API_URL}/user/me`, {
+        credentials: "include",
+      });
+      const meData = await meRes.json();
 
-      const userData = await userRes.json();
-
-      if (!userRes.ok) {
-        throw new Error(userData.message || "Profile load nahi hui.");
+      if (!meRes.ok) {
+        throw new Error(meData.message || "Login user load nahi hua.");
       }
 
-      const profileUser = userData.data;
-      if (!profileUser) throw new Error("User data nahi mila.");
+      const me = meData.data;
+      if (!me) throw new Error("Login user data nahi mila.");
+
+      setCurrentUser(me);
+
+      // 2. URL mein username hai toh usi user ki profile fetch karo.
+      const profileUrl = userName
+        ? `${API_URL}/user/profile/${encodeURIComponent(userName)}`
+        : `${API_URL}/user/me`;
+
+      const profileRes = await fetch(profileUrl, {
+        credentials: "include",
+      });
+      const profileData = await profileRes.json();
+
+      if (!profileRes.ok) {
+        throw new Error(profileData.message || "Profile load nahi hui.");
+      }
+
+      const profileUser = profileData.data;
+      if (!profileUser) throw new Error("Profile user nahi mila.");
+
+      // 3. Owner ko username ke bajay ID se identify karo.
+      const ownProfile = getId(me) === getId(profileUser);
 
       setUser(profileUser);
-      setIsOwnProfile(
-        !userName ||
-        String(profileUser.userName || "").toLowerCase() ===
-          String(userName || "").toLowerCase()
+      setIsOwnProfile(ownProfile);
+
+      const myFollowing = Array.isArray(me.following)
+        ? me.following
+        : [];
+
+      const alreadyFollowing = myFollowing.some(
+        (person) => getId(person) === getId(profileUser)
       );
+
+      setFollowing(!ownProfile && alreadyFollowing);
 
       setForm({
         fullName: profileUser.fullName || "",
         bio: profileUser.bio || "",
       });
 
-      // Current backend GET /post se posts
+      // 4. Sirf isi profile ke posts show karo.
       const postsRes = await fetch(`${API_URL}/post`, {
         credentials: "include",
       });
@@ -103,18 +134,14 @@ function Profile() {
         throw new Error(postsData.message || "Posts load nahi hue.");
       }
 
-      const allPosts = Array.isArray(postsData.data) ? postsData.data : [];
-      const profileId = String(profileUser._id || profileUser.id || "");
+      const allPosts = Array.isArray(postsData.data)
+        ? postsData.data
+        : [];
 
       setPosts(
         allPosts.filter((post) => {
-          const author = post.author;
-          const authorId =
-            author && typeof author === "object"
-              ? author._id || author.id
-              : author;
-
-          return String(authorId || "") === profileId;
+          const authorId = getId(post.author);
+          return authorId === getId(profileUser);
         })
       );
     } catch (err) {
@@ -122,6 +149,63 @@ function Profile() {
       setUser(null);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleFollow = async () => {
+    if (!user || !currentUser || isOwnProfile || followLoading) return;
+
+    try {
+      setFollowLoading(true);
+
+      // Backend ka actual toggleFollow route.
+      const res = await fetch(
+        `${API_URL}/user/follow/${getId(user)}`,
+        {
+          method: "POST",
+          credentials: "include",
+        }
+      );
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.message || "Follow action failed.");
+      }
+
+      const nextFollowing = !following;
+      setFollowing(nextFollowing);
+
+      // Button aur counts ko turant update karo.
+      setUser((prev) => ({
+        ...prev,
+        followers: nextFollowing
+          ? [
+              ...(Array.isArray(prev.followers) ? prev.followers : []),
+              getId(currentUser),
+            ]
+          : (Array.isArray(prev.followers) ? prev.followers : []).filter(
+              (person) => getId(person) !== getId(currentUser)
+            ),
+      }));
+
+      setCurrentUser((prev) => ({
+        ...prev,
+        following: nextFollowing
+          ? [
+              ...(Array.isArray(prev.following) ? prev.following : []),
+              getId(user),
+            ]
+          : (Array.isArray(prev.following) ? prev.following : []).filter(
+              (person) => getId(person) !== getId(user)
+            ),
+      }));
+
+      showToast(nextFollowing ? "User followed! 💜" : "Unfollowed successfully.");
+    } catch (err) {
+      showToast(err.message || "Follow action nahi hua.", "error");
+    } finally {
+      setFollowLoading(false);
     }
   };
 
@@ -175,11 +259,12 @@ function Profile() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Profile update nahi hui.");
 
-      setUser(data.data);
+      setUser((prev) => ({ ...prev, ...data.data }));
       setForm({
         fullName: data.data.fullName || "",
         bio: data.data.bio || "",
       });
+
       setEditing(false);
       showToast("Profile updated successfully! 💜");
     } catch (err) {
@@ -207,6 +292,7 @@ function Profile() {
 
     try {
       setAvatarSaving(true);
+
       const formData = new FormData();
       formData.append("avatar", file);
 
@@ -239,12 +325,13 @@ function Profile() {
 
     try {
       setLoggingOut(true);
+
       const res = await fetch(`${API_URL}/user/logout`, {
         method: "POST",
         credentials: "include",
       });
-
       const data = await res.json();
+
       if (!res.ok) throw new Error(data.message || "Logout failed.");
 
       navigate("/login", { replace: true });
@@ -264,13 +351,14 @@ function Profile() {
       setConnectionsError("");
       setConnectionsLoading(true);
 
-      const userId = user._id || user.id;
-      const res = await fetch(`${API_URL}/user/${userId}/${type}`, {
-        credentials: "include",
-      });
+      const res = await fetch(
+        `${API_URL}/user/${getId(user)}/${type}`,
+        { credentials: "include" }
+      );
       const data = await res.json();
 
       if (!res.ok) throw new Error(data.message || `${type} load nahi hue.`);
+
       setConnections(Array.isArray(data.data) ? data.data : []);
     } catch (err) {
       setConnectionsError(err.message || "Users load nahi hue.");
@@ -306,14 +394,21 @@ function Profile() {
     );
   }
 
-  const followersCount = Array.isArray(user.followers) ? user.followers.length : 0;
-  const followingCount = Array.isArray(user.following) ? user.following.length : 0;
+  const followersCount = Array.isArray(user.followers)
+    ? user.followers.length
+    : 0;
+
+  const followingCount = Array.isArray(user.following)
+    ? user.following.length
+    : 0;
 
   return (
     <div className="min-h-screen bg-[#F7F3FF]">
       {toast && (
         <div className="fixed right-4 top-5 z-[200] w-[calc(100%-2rem)] max-w-sm">
-          <div className={`flex items-center gap-3 rounded-2xl border bg-white p-4 shadow-xl ${toast.type === "error" ? "border-red-200" : "border-[#EDE0FF]"}`}>
+          <div className={`flex items-center gap-3 rounded-2xl border bg-white p-4 shadow-xl ${
+            toast.type === "error" ? "border-red-200" : "border-[#EDE0FF]"
+          }`}>
             <span className={toast.type === "error" ? "text-red-600" : "text-[#61269B]"}>
               {toast.type === "error" ? <AlertCircle size={22} /> : <CheckCircle2 size={22} />}
             </span>
@@ -351,7 +446,11 @@ function Profile() {
                   <div className="relative -mt-12 h-24 w-24 shrink-0 sm:-mt-14 sm:h-28 sm:w-28">
                     <div className="flex h-full w-full items-center justify-center overflow-hidden rounded-full border-4 border-white bg-[#EDE0FF] text-[#61269B] shadow-md">
                       {user.avatar ? (
-                        <img src={user.avatar} alt={user.fullName || "Profile"} className="h-full w-full object-cover" />
+                        <img
+                          src={user.avatar}
+                          alt={user.fullName || "Profile"}
+                          className="h-full w-full object-cover"
+                        />
                       ) : <UserRound size={46} />}
                     </div>
 
@@ -378,22 +477,50 @@ function Profile() {
                   </div>
 
                   <div className="min-w-0 pb-1">
-                    <h1 className="break-words text-xl font-black text-[#4B187E] sm:text-2xl">{user.fullName || "Your Name"}</h1>
-                    <p className="break-words text-sm text-gray-500">@{user.userName || "username"}</p>
+                    <h1 className="break-words text-xl font-black text-[#4B187E] sm:text-2xl">
+                      {user.fullName || "Your Name"}
+                    </h1>
+                    <p className="break-words text-sm text-gray-500">
+                      @{user.userName || "username"}
+                    </p>
                   </div>
                 </div>
 
                 <div className="flex gap-2 sm:pb-1">
-                  {isOwnProfile && (
+                  {isOwnProfile ? (
                     <button
                       onClick={() => setEditing(!editing)}
                       className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#61269B] px-3 py-2.5 text-sm font-semibold text-white sm:flex-none sm:px-4"
                     >
                       <Pencil size={16} /> Edit Profile
                     </button>
+                  ) : (
+                    <button
+                      onClick={handleFollow}
+                      disabled={followLoading}
+                      className={`flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold sm:flex-none disabled:opacity-60 ${
+                        following
+                          ? "border border-[#61269B] bg-white text-[#61269B]"
+                          : "bg-[#61269B] text-white"
+                      }`}
+                    >
+                      {followLoading ? (
+                        <LoaderCircle size={16} className="animate-spin" />
+                      ) : following ? (
+                        <UserCheck size={16} />
+                      ) : (
+                        <UserPlus size={16} />
+                      )}
+                      {following ? "Following" : "Follow"}
+                    </button>
                   )}
-                  <button onClick={handleShare} className="flex items-center justify-center gap-2 rounded-xl border border-[#61269B] px-3 py-2.5 text-sm font-semibold text-[#61269B] sm:px-4">
-                    <Share2 size={16} /><span className="hidden sm:inline">Share</span>
+
+                  <button
+                    onClick={handleShare}
+                    className="flex items-center justify-center gap-2 rounded-xl border border-[#61269B] px-3 py-2.5 text-sm font-semibold text-[#61269B] sm:px-4"
+                  >
+                    <Share2 size={16} />
+                    <span className="hidden sm:inline">Share</span>
                   </button>
                 </div>
               </div>
@@ -403,27 +530,69 @@ function Profile() {
               </p>
 
               <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-sm text-gray-500">
-                {user.location && <span className="flex items-center gap-1.5"><MapPin size={16} />{user.location}</span>}
-                {user.website && <a href={user.website} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 text-[#61269B] hover:underline"><LinkIcon size={16} />Website</a>}
-                {user.createdAt && <span className="flex items-center gap-1.5"><CalendarDays size={16} />Joined {new Date(user.createdAt).toLocaleDateString("en", { month: "short", year: "numeric" })}</span>}
+                {user.location && (
+                  <span className="flex items-center gap-1.5">
+                    <MapPin size={16} />{user.location}
+                  </span>
+                )}
+                {user.website && (
+                  <a href={user.website} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 text-[#61269B] hover:underline">
+                    <LinkIcon size={16} />Website
+                  </a>
+                )}
+                {user.createdAt && (
+                  <span className="flex items-center gap-1.5">
+                    <CalendarDays size={16} />
+                    Joined {new Date(user.createdAt).toLocaleDateString("en", { month: "short", year: "numeric" })}
+                  </span>
+                )}
               </div>
 
               <div className="mt-6 grid grid-cols-3 divide-x divide-[#EDE0FF] rounded-xl bg-[#F7F3FF] py-4 text-center">
-                <div><p className="text-xl font-black text-[#4B187E]">{posts.length}</p><p className="text-xs text-gray-500 sm:text-sm">Posts</p></div>
-                <button type="button" onClick={() => loadConnections("followers")} className="rounded-lg hover:bg-[#EDE0FF]"><p className="text-xl font-black text-[#4B187E]">{followersCount}</p><p className="text-xs text-gray-500 sm:text-sm">Followers</p></button>
-                <button type="button" onClick={() => loadConnections("following")} className="rounded-lg hover:bg-[#EDE0FF]"><p className="text-xl font-black text-[#4B187E]">{followingCount}</p><p className="text-xs text-gray-500 sm:text-sm">Following</p></button>
+                <div>
+                  <p className="text-xl font-black text-[#4B187E]">{posts.length}</p>
+                  <p className="text-xs text-gray-500 sm:text-sm">Posts</p>
+                </div>
+                <button type="button" onClick={() => loadConnections("followers")} className="rounded-lg hover:bg-[#EDE0FF]">
+                  <p className="text-xl font-black text-[#4B187E]">{followersCount}</p>
+                  <p className="text-xs text-gray-500 sm:text-sm">Followers</p>
+                </button>
+                <button type="button" onClick={() => loadConnections("following")} className="rounded-lg hover:bg-[#EDE0FF]">
+                  <p className="text-xl font-black text-[#4B187E]">{followingCount}</p>
+                  <p className="text-xs text-gray-500 sm:text-sm">Following</p>
+                </button>
               </div>
 
               {isOwnProfile && (
                 <>
-                  <button type="button" onClick={() => navigate("/bookmarks")} className="group mt-5 flex w-full items-center gap-3 rounded-2xl bg-gradient-to-r from-[#4B187E] via-[#61269B] to-[#8050B8] p-4 text-left shadow-md sm:p-5">
+                  <button
+                    type="button"
+                    onClick={() => navigate("/bookmarks")}
+                    className="group mt-5 flex w-full items-center gap-3 rounded-2xl bg-gradient-to-r from-[#4B187E] via-[#61269B] to-[#8050B8] p-4 text-left shadow-md sm:p-5"
+                  >
                     <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/15 text-white"><Bookmark size={25} /></span>
-                    <span className="min-w-0 flex-1"><span className="block font-bold text-white">Saved Posts</span><span className="mt-1 block text-xs text-purple-100 sm:text-sm">Your favourite posts, all in one place</span></span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block font-bold text-white">Saved Posts</span>
+                      <span className="mt-1 block text-xs text-purple-100 sm:text-sm">Your favourite posts, all in one place</span>
+                    </span>
                     <ChevronRight size={21} className="text-white" />
                   </button>
 
-                  <button type="button" onClick={handleLogout} disabled={loggingOut} className="mt-3 flex w-full items-center justify-between rounded-2xl border border-red-200 bg-white p-4 text-left disabled:opacity-60 sm:p-5">
-                    <span className="flex items-center gap-3"><span className="flex h-12 w-12 items-center justify-center rounded-xl bg-red-50 text-red-600">{loggingOut ? <LoaderCircle size={23} className="animate-spin" /> : <LogOut size={23} />}</span><span><span className="block font-bold text-red-600">{loggingOut ? "Logging out..." : "Logout"}</span><span className="mt-1 block text-xs text-gray-500 sm:text-sm">Sign out from your ConnectHub account</span></span></span>
+                  <button
+                    type="button"
+                    onClick={handleLogout}
+                    disabled={loggingOut}
+                    className="mt-3 flex w-full items-center justify-between rounded-2xl border border-red-200 bg-white p-4 text-left disabled:opacity-60 sm:p-5"
+                  >
+                    <span className="flex items-center gap-3">
+                      <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-red-50 text-red-600">
+                        {loggingOut ? <LoaderCircle size={23} className="animate-spin" /> : <LogOut size={23} />}
+                      </span>
+                      <span>
+                        <span className="block font-bold text-red-600">{loggingOut ? "Logging out..." : "Logout"}</span>
+                        <span className="mt-1 block text-xs text-gray-500 sm:text-sm">Sign out from your ConnectHub account</span>
+                      </span>
+                    </span>
                     <ChevronRight size={21} className="text-red-400" />
                   </button>
                 </>
@@ -436,24 +605,64 @@ function Profile() {
               <h2 className="text-lg font-bold text-[#4B187E]">Edit Your Profile</h2>
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-gray-700">Full Name</label>
-                <input required value={form.fullName} onChange={(e) => setForm({ ...form, fullName: e.target.value })} className="w-full rounded-xl border border-[#E6D9F5] px-4 py-3 outline-none focus:border-[#61269B]" />
+                <input
+                  required
+                  value={form.fullName}
+                  onChange={(e) => setForm({ ...form, fullName: e.target.value })}
+                  className="w-full rounded-xl border border-[#E6D9F5] px-4 py-3 outline-none focus:border-[#61269B]"
+                />
               </div>
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-gray-700">Bio</label>
-                <textarea rows={3} maxLength={250} value={form.bio} onChange={(e) => setForm({ ...form, bio: e.target.value })} className="w-full resize-y rounded-xl border border-[#E6D9F5] px-4 py-3 outline-none focus:border-[#61269B]" placeholder="Tell people about yourself..." />
+                <textarea
+                  rows={3}
+                  maxLength={250}
+                  value={form.bio}
+                  onChange={(e) => setForm({ ...form, bio: e.target.value })}
+                  className="w-full resize-y rounded-xl border border-[#E6D9F5] px-4 py-3 outline-none focus:border-[#61269B]"
+                  placeholder="Tell people about yourself..."
+                />
               </div>
               <div className="flex flex-wrap gap-3">
-                <button type="submit" disabled={saving} className="rounded-xl bg-[#4B187E] px-5 py-2.5 font-semibold text-white disabled:opacity-60">{saving ? "Saving..." : "Save Changes"}</button>
-                <button type="button" onClick={() => { setEditing(false); setForm({ fullName: user.fullName || "", bio: user.bio || "" }); }} className="rounded-xl border border-gray-300 px-5 py-2.5 font-semibold text-gray-600">Cancel</button>
+                <button type="submit" disabled={saving} className="rounded-xl bg-[#4B187E] px-5 py-2.5 font-semibold text-white disabled:opacity-60">
+                  {saving ? "Saving..." : "Save Changes"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditing(false);
+                    setForm({ fullName: user.fullName || "", bio: user.bio || "" });
+                  }}
+                  className="rounded-xl border border-gray-300 px-5 py-2.5 font-semibold text-gray-600"
+                >
+                  Cancel
+                </button>
               </div>
             </form>
           )}
 
           <section className="overflow-hidden rounded-2xl border border-[#E6D9F5] bg-white shadow-sm">
             <div className="flex gap-6 border-b border-[#EDE0FF] px-5 sm:px-7">
-              <button onClick={() => setActiveTab("posts")} className={`flex items-center gap-2 border-b-2 py-4 text-sm font-semibold ${activeTab === "posts" ? "border-[#61269B] text-[#61269B]" : "border-transparent text-gray-500"}`}><Grid3X3 size={18} />Posts</button>
+              <button
+                onClick={() => setActiveTab("posts")}
+                className={`flex items-center gap-2 border-b-2 py-4 text-sm font-semibold ${
+                  activeTab === "posts" ? "border-[#61269B] text-[#61269B]" : "border-transparent text-gray-500"
+                }`}
+              >
+                <Grid3X3 size={18} />Posts
+              </button>
               {isOwnProfile && (
-                <button onClick={() => { setActiveTab("liked"); loadLikedPosts(); }} className={`flex items-center gap-2 border-b-2 py-4 text-sm font-semibold ${activeTab === "liked" ? "border-[#61269B] text-[#61269B]" : "border-transparent text-gray-500"}`}><Heart size={18} />Liked</button>
+                <button
+                  onClick={() => {
+                    setActiveTab("liked");
+                    loadLikedPosts();
+                  }}
+                  className={`flex items-center gap-2 border-b-2 py-4 text-sm font-semibold ${
+                    activeTab === "liked" ? "border-[#61269B] text-[#61269B]" : "border-transparent text-gray-500"
+                  }`}
+                >
+                  <Heart size={18} />Liked
+                </button>
               )}
             </div>
 
@@ -461,46 +670,97 @@ function Profile() {
               posts.length ? (
                 <div className="grid grid-cols-2 gap-2 p-3 sm:grid-cols-3 sm:gap-4 sm:p-5">
                   {posts.map((post) => (
-                    <button key={post._id} onClick={() => navigate(`/post/${post._id}`)} className="min-w-0 overflow-hidden rounded-xl border border-[#EDE0FF] bg-[#F7F3FF] text-left hover:shadow-md">
-                      {post.image ? <img src={post.image} alt="Post" className="aspect-square w-full object-cover" /> : <div className="flex aspect-square items-center justify-center overflow-hidden p-3 text-sm text-[#4B187E]"><p className="line-clamp-6 break-words">{post.content || "Post"}</p></div>}
-                      <div className="flex items-center gap-1.5 px-2 py-2 text-xs text-[#61269B] sm:px-3 sm:text-sm"><Heart size={15} />{Array.isArray(post.likes) ? post.likes.length : 0}<span className="text-gray-500">Likes</span></div>
+                    <button
+                      key={post._id}
+                      onClick={() => navigate(`/post/${post._id}`)}
+                      className="min-w-0 overflow-hidden rounded-xl border border-[#EDE0FF] bg-[#F7F3FF] text-left hover:shadow-md"
+                    >
+                      {post.image ? (
+                        <img src={post.image} alt="Post" className="aspect-square w-full object-cover" />
+                      ) : (
+                        <div className="flex aspect-square items-center justify-center overflow-hidden p-3 text-sm text-[#4B187E]">
+                          <p className="line-clamp-6 break-words">{post.content || "Post"}</p>
+                        </div>
+                      )}
+                      <div className="flex items-center gap-1.5 px-2 py-2 text-xs text-[#61269B] sm:px-3 sm:text-sm">
+                        <Heart size={15} />
+                        {Array.isArray(post.likes) ? post.likes.length : 0}
+                        <span className="text-gray-500">Likes</span>
+                      </div>
                     </button>
                   ))}
                 </div>
               ) : (
-                <div className="flex flex-col items-center px-5 py-14 text-center"><ImagePlus size={38} className="text-[#61269B}" /><h3 className="mt-3 font-bold text-[#4B187E]">No posts yet</h3><p className="mt-1 text-sm text-gray-500">Posts will appear here.</p></div>
+                <div className="flex flex-col items-center px-5 py-14 text-center">
+                  <ImagePlus size={38} className="text-[#61269B]" />
+                  <h3 className="mt-3 font-bold text-[#4B187E]">No posts yet</h3>
+                  <p className="mt-1 text-sm text-gray-500">Posts will appear here.</p>
+                </div>
               )
             ) : likedLoading ? (
-              <div className="flex items-center justify-center gap-3 py-14 text-[#61269B]"><LoaderCircle size={25} className="animate-spin" />Loading liked posts...</div>
+              <div className="flex items-center justify-center gap-3 py-14 text-[#61269B]">
+                <LoaderCircle size={25} className="animate-spin" />Loading liked posts...
+              </div>
             ) : likedError ? (
-              <div className="px-5 py-10 text-center"><p className="text-sm text-red-600">{likedError}</p><button onClick={loadLikedPosts} className="mt-3 rounded-xl bg-[#61269B] px-4 py-2 text-sm font-semibold text-white">Try Again</button></div>
+              <div className="px-5 py-10 text-center">
+                <p className="text-sm text-red-600">{likedError}</p>
+                <button onClick={loadLikedPosts} className="mt-3 rounded-xl bg-[#61269B] px-4 py-2 text-sm font-semibold text-white">Try Again</button>
+              </div>
             ) : likedPosts.length ? (
               <div className="grid grid-cols-2 gap-2 p-3 sm:grid-cols-3 sm:gap-4 sm:p-5">
                 {likedPosts.map((post) => (
-                  <button key={post._id} onClick={() => navigate(`/post/${post._id}`)} className="min-w-0 overflow-hidden rounded-xl border border-[#EDE0FF] bg-[#F7F3FF] text-left hover:shadow-md">
-                    {post.image ? <img src={post.image} alt="Liked post" className="aspect-square w-full object-cover" /> : <div className="flex aspect-square items-center justify-center overflow-hidden p-3 text-sm text-[#4B187E]"><p className="line-clamp-6 break-words">{post.content || "Post"}</p></div>}
-                    <div className="flex items-center gap-1.5 px-2 py-2 text-xs text-[#61269B] sm:px-3 sm:text-sm"><Heart size={15} fill="#61269B" />{Array.isArray(post.likes) ? post.likes.length : 0}<span className="text-gray-500">Likes</span></div>
+                  <button
+                    key={post._id}
+                    onClick={() => navigate(`/post/${post._id}`)}
+                    className="min-w-0 overflow-hidden rounded-xl border border-[#EDE0FF] bg-[#F7F3FF] text-left hover:shadow-md"
+                  >
+                    {post.image ? (
+                      <img src={post.image} alt="Liked post" className="aspect-square w-full object-cover" />
+                    ) : (
+                      <div className="flex aspect-square items-center justify-center overflow-hidden p-3 text-sm text-[#4B187E]">
+                        <p className="line-clamp-6 break-words">{post.content || "Post"}</p>
+                      </div>
+                    )}
+                    <div className="flex items-center gap-1.5 px-2 py-2 text-xs text-[#61269B] sm:px-3 sm:text-sm">
+                      <Heart size={15} fill="#61269B" />
+                      {Array.isArray(post.likes) ? post.likes.length : 0}
+                      <span className="text-gray-500">Likes</span>
+                    </div>
                   </button>
                 ))}
               </div>
             ) : (
-              <div className="px-5 py-14 text-center"><Heart size={38} className="mx-auto text-[#B99AE8]" /><h3 className="mt-3 font-bold text-[#4B187E]">No liked posts yet</h3><p className="mt-1 text-sm text-gray-500">Posts you like will appear here.</p></div>
+              <div className="px-5 py-14 text-center">
+                <Heart size={38} className="mx-auto text-[#B99AE8]" />
+                <h3 className="mt-3 font-bold text-[#4B187E]">No liked posts yet</h3>
+                <p className="mt-1 text-sm text-gray-500">Posts you like will appear here.</p>
+              </div>
             )}
           </section>
         </main>
 
-        <div className="hidden min-w-0 xl:block"><div className="sticky top-24"><RightSidebar /></div></div>
+        <div className="hidden min-w-0 xl:block">
+          <div className="sticky top-24"><RightSidebar /></div>
+        </div>
       </div>
 
       {connectionType && (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/40 p-4" onClick={() => setConnectionType("")}>
+        <div
+          className="fixed inset-0 z-[110] flex items-center justify-center bg-black/40 p-4"
+          onClick={() => setConnectionType("")}
+        >
           <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-lg font-bold capitalize text-[#4B187E]">{connectionType}</h2>
-              <button onClick={() => setConnectionType("")} className="rounded-lg p-2 text-gray-500 hover:bg-[#F7F3FF]"><X size={20} /></button>
+              <button onClick={() => setConnectionType("")} className="rounded-lg p-2 text-gray-500 hover:bg-[#F7F3FF]">
+                <X size={20} />
+              </button>
             </div>
+
             {connectionsLoading ? (
-              <div className="flex justify-center py-8 text-[#61269B]"><LoaderCircle className="animate-spin" size={28} /></div>
+              <div className="flex justify-center py-8 text-[#61269B]">
+                <LoaderCircle className="animate-spin" size={28} />
+              </div>
             ) : connectionsError ? (
               <p className="py-5 text-sm text-red-600">{connectionsError}</p>
             ) : connections.length === 0 ? (
@@ -508,9 +768,27 @@ function Profile() {
             ) : (
               <div className="max-h-80 space-y-3 overflow-y-auto">
                 {connections.map((person) => (
-                  <button key={person._id} onClick={() => { setConnectionType(""); if (person.userName) navigate(`/profile/${encodeURIComponent(person.userName)}`); }} className="flex w-full items-center gap-3 rounded-xl p-3 text-left hover:bg-[#F7F3FF]">
-                    {person.avatar ? <img src={person.avatar} alt="" className="h-11 w-11 rounded-full object-cover" /> : <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#EDE0FF] text-[#61269B]"><UserRound size={23} /></div>}
-                    <div className="min-w-0"><p className="truncate font-semibold text-[#4B187E]">{person.fullName || "User"}</p><p className="truncate text-sm text-gray-500">@{person.userName || "username"}</p></div>
+                  <button
+                    key={person._id}
+                    onClick={() => {
+                      setConnectionType("");
+                      if (person.userName) {
+                        navigate(`/profile/${encodeURIComponent(person.userName)}`);
+                      }
+                    }}
+                    className="flex w-full items-center gap-3 rounded-xl p-3 text-left hover:bg-[#F7F3FF]"
+                  >
+                    {person.avatar ? (
+                      <img src={person.avatar} alt="" className="h-11 w-11 rounded-full object-cover" />
+                    ) : (
+                      <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#EDE0FF] text-[#61269B]">
+                        <UserRound size={23} />
+                      </div>
+                    )}
+                    <div className="min-w-0">
+                      <p className="truncate font-semibold text-[#4B187E]">{person.fullName || "User"}</p>
+                      <p className="truncate text-sm text-gray-500">@{person.userName || "username"}</p>
+                    </div>
                   </button>
                 ))}
               </div>
