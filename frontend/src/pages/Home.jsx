@@ -351,9 +351,8 @@ function Home() {
   };
 
   const filteredPosts = posts.filter((post) => {
-    const text = `${post.content || ""} ${
-      post.author?.fullName || ""
-    } ${post.author?.userName || ""}`;
+    const text = `${post.content || ""} ${post.author?.fullName || ""
+      } ${post.author?.userName || ""}`;
 
     return text.toLowerCase().includes(search.toLowerCase());
   });
@@ -379,11 +378,10 @@ function Home() {
                     <button
                       key={item.label}
                       onClick={() => navigate(item.path)}
-                      className={`flex w-full items-center gap-3 rounded-2xl px-4 py-3.5 text-left font-bold transition ${
-                        active
+                      className={`flex w-full items-center gap-3 rounded-2xl px-4 py-3.5 text-left font-bold transition ${active
                           ? "bg-[#4B187E] text-white shadow-md shadow-purple-200"
                           : "text-gray-600 hover:bg-purple-50 hover:text-[#4B187E]"
-                      }`}
+                        }`}
                     >
                       <Icon size={21} />
                       {item.label}
@@ -644,11 +642,10 @@ function Home() {
 
                     <button
                       onClick={() => handleBookmark(postId)}
-                      className={`flex min-w-0 items-center justify-center gap-1 rounded-xl py-3 text-[10px] font-bold transition sm:gap-1.5 sm:text-xs ${
-                        isSaved
+                      className={`flex min-w-0 items-center justify-center gap-1 rounded-xl py-3 text-[10px] font-bold transition sm:gap-1.5 sm:text-xs ${isSaved
                           ? "bg-purple-100 text-[#4B187E]"
                           : "text-gray-600 hover:bg-purple-50 hover:text-[#61269B]"
-                      }`}
+                        }`}
                     >
                       <Bookmark
                         size={17}
@@ -666,7 +663,7 @@ function Home() {
         {/* RIGHT SIDEBAR */}
         <aside className="hidden space-y-6 xl:block">
           {/* Trending */}
-          
+
 
           {/* Suggested users */}
           <section className="rounded-3xl border border-purple-100 bg-white p-5 shadow-sm xl:p-6">
@@ -743,11 +740,10 @@ function Home() {
                       <button
                         onClick={() => handleFollow(id)}
                         disabled={isBusy}
-                        className={`flex shrink-0 items-center gap-1 rounded-xl px-2.5 py-2 text-xs font-bold disabled:opacity-60 ${
-                          isFollowing
+                        className={`flex shrink-0 items-center gap-1 rounded-xl px-2.5 py-2 text-xs font-bold disabled:opacity-60 ${isFollowing
                             ? "bg-purple-100 text-[#4B187E]"
                             : "bg-[#4B187E] text-white hover:bg-[#61269B]"
-                        }`}
+                          }`}
                       >
                         {isBusy ? (
                           <LoaderCircle size={14} className="animate-spin" />

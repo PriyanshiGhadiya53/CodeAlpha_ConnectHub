@@ -23,10 +23,11 @@ router.route("/avatar").patch(
     updateAvatar
 );
 
-
+router.route("/suggestions").get(verifyJWT, getSuggestedUsers);
+router.route("/search").get(searchUsers);
 router.route("/follow/:userId").post(verifyJWT, toggleFollow);
 router.route("/:userId/followers").get(getFollowers);
-router.route("/suggestions").get(verifyJWT, getSuggestedUsers);
+
 router.route("/:userId/following").get(getFollowing);
-router.route("/search").get(searchUsers);
+
 export default router;

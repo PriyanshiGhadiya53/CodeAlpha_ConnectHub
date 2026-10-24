@@ -61,8 +61,11 @@ function Messages() {
 
     const currentUserId = currentUser._id || currentUser.id;
     const newSocket = io(SOCKET_URL, {
-      transports: ["websocket"],
       withCredentials: true,
+      transports: ["polling", "websocket"],
+      reconnection: true,
+      reconnectionAttempts: 5,
+      timeout: 20000,
     });
 
     newSocket.on("connect", () => {
@@ -178,14 +181,13 @@ function Messages() {
   };
 
   return (
-    <div className="flex h-screen bg-[#F3ECFF] p-3 text-gray-800 sm:p-6">
+    <div className="flex h-[100dvh] overflow-hidden bg-[#F3ECFF] p-0 text-gray-800 sm:p-6">
       <div className="mx-auto flex w-full max-w-[1500px] gap-4 overflow-hidden rounded-[32px] border border-purple-200/60 bg-white shadow-xl">
-        
+
         {/* LEFT PANEL - USERS LIST & SEARCH */}
         <div
-          className={`${
-            selectedUser ? "hidden md:flex" : "flex"
-          } w-full flex-col border-r border-purple-100 bg-white p-5 md:w-[380px]`}
+          className={`${selectedUser ? "hidden md:flex" : "flex"
+            } w-full flex-col border-r border-purple-100 bg-white p-5 md:w-[380px]`}
         >
           <div className="mb-5 flex items-center gap-3">
             <button
@@ -232,11 +234,10 @@ function Messages() {
                   <button
                     key={userId}
                     onClick={() => setSelectedUser(u)}
-                    className={`flex w-full items-center gap-3.5 rounded-2xl p-3 text-left transition ${
-                      isSelected
-                        ? "bg-[#4B187E] text-white shadow-md shadow-purple-900/20"
-                        : "text-gray-800 hover:bg-purple-50"
-                    }`}
+                    className={`flex w-full items-center gap-3.5 rounded-2xl p-3 text-left transition ${isSelected
+                      ? "bg-[#4B187E] text-white shadow-md shadow-purple-900/20"
+                      : "text-gray-800 hover:bg-purple-50"
+                      }`}
                   >
                     {u.avatar ? (
                       <img
@@ -246,11 +247,10 @@ function Messages() {
                       />
                     ) : (
                       <div
-                        className={`flex h-12 w-12 items-center justify-center rounded-2xl text-lg font-black ${
-                          isSelected
-                            ? "bg-white text-[#4B187E]"
-                            : "bg-[#4B187E] text-white"
-                        }`}
+                        className={`flex h-12 w-12 items-center justify-center rounded-2xl text-lg font-black ${isSelected
+                          ? "bg-white text-[#4B187E]"
+                          : "bg-[#4B187E] text-white"
+                          }`}
                       >
                         {(u.fullName || u.userName || "U")[0].toUpperCase()}
                       </div>
@@ -261,9 +261,8 @@ function Messages() {
                         {u.fullName || "User"}
                       </p>
                       <p
-                        className={`truncate text-xs ${
-                          isSelected ? "text-purple-200" : "text-gray-400"
-                        }`}
+                        className={`truncate text-xs ${isSelected ? "text-purple-200" : "text-gray-400"
+                          }`}
                       >
                         @{u.userName || "username"}
                       </p>
@@ -277,9 +276,8 @@ function Messages() {
 
         {/* RIGHT PANEL - CHAT AREA */}
         <div
-          className={`${
-            !selectedUser ? "hidden md:flex" : "flex"
-          } flex-1 flex-col bg-[#F3ECFF]/30`}
+          className={`${!selectedUser ? "hidden md:flex" : "flex"
+            } min-h-0 min-w-0 flex-1 flex-col bg-[#F3ECFF]/30`}
         >
           {selectedUser ? (
             <>
@@ -337,28 +335,25 @@ function Messages() {
                     return (
                       <div
                         key={m._id}
-                        className={`flex ${
-                          isMe ? "justify-end" : "justify-start"
-                        }`}
+                        className={`flex ${isMe ? "justify-end" : "justify-start"
+                          }`}
                       >
                         <div
-                          className={`max-w-[75%] rounded-2xl px-4 py-3 text-sm font-medium shadow-sm ${
-                            isMe
-                              ? "rounded-tr-none bg-[#4B187E] text-white"
-                              : "rounded-tl-none border border-purple-100 bg-white text-gray-800"
-                          }`}
+                          className={`max-w-[75%] rounded-2xl px-4 py-3 text-sm font-medium shadow-sm ${isMe
+                            ? "rounded-tr-none bg-[#4B187E] text-white"
+                            : "rounded-tl-none border border-purple-100 bg-white text-gray-800"
+                            }`}
                         >
                           <p className="break-words">{m.content}</p>
                           <p
-                            className={`mt-1 text-right text-[10px] font-medium ${
-                              isMe ? "text-purple-200" : "text-gray-400"
-                            }`}
+                            className={`mt-1 text-right text-[10px] font-medium ${isMe ? "text-purple-200" : "text-gray-400"
+                              }`}
                           >
                             {m.createdAt
                               ? new Date(m.createdAt).toLocaleTimeString([], {
-                                  hour: "2-digit",
-                                  minute: "2-digit",
-                                })
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })
                               : ""}
                           </p>
                         </div>
@@ -371,15 +366,13 @@ function Messages() {
 
               <form
                 onSubmit={handleSend}
-                className="flex items-center gap-3 border-t border-purple-100 bg-white p-3 sm:p-4"
-              >
+                className="sticky bottom-0 flex shrink-0 items-center gap-2 border-t border-purple-100 bg-white p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:gap-3 sm:p-4"            >
                 <input
                   type="text"
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}
                   placeholder="Type a message..."
-                  className="flex-1 rounded-2xl border border-purple-200/70 bg-purple-50/40 px-4 py-3 text-sm outline-none focus:border-[#61269B] focus:ring-2 focus:ring-purple-200"
-                />
+                  className="min-w-0 flex-1 rounded-2xl border border-purple-200/70 bg-purple-50/40 px-4 py-3 text-base text-gray-900 outline-none focus:border-[#61269B] focus:ring-2 focus:ring-purple-200" />
                 <button
                   type="submit"
                   disabled={!newMessage.trim()}
@@ -402,7 +395,7 @@ function Messages() {
           )}
         </div>
       </div>
-    </div>
+    </div >
   );
 }
 
