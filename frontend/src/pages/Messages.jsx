@@ -7,7 +7,6 @@ import {
   ArrowLeft,
   MessageSquare,
   LoaderCircle,
-  UserRound,
 } from "lucide-react";
 
 const API_URL = "https://connecthub-backend-zf8y.onrender.com/api/v1";
@@ -28,7 +27,7 @@ function Messages() {
 
   const messagesEndRef = useRef(null);
 
-  // 1. Current logged-in user fetch karein
+  // 1. Current logged-in user fetch
   useEffect(() => {
     const fetchMe = async () => {
       try {
@@ -55,7 +54,7 @@ function Messages() {
     fetchMe();
   }, [navigate]);
 
-  // 2. Socket Connection & Join Room setup
+  // 2. Socket Connection
   useEffect(() => {
     if (!currentUser) return;
 
@@ -64,8 +63,6 @@ function Messages() {
       withCredentials: true,
       transports: ["polling", "websocket"],
       reconnection: true,
-      reconnectionAttempts: 5,
-      timeout: 20000,
     });
 
     newSocket.on("connect", () => {
@@ -96,7 +93,7 @@ function Messages() {
     return () => socket.off("new-message", handleNewMessage);
   }, [socket, selectedUser]);
 
-  // 4. Users list fetch (Search query ya default "a" query ke sath)
+  // 4. Users list fetch
   useEffect(() => {
     const fetchUsers = async () => {
       try {
@@ -104,9 +101,7 @@ function Messages() {
         const searchQuery = search.trim() ? search.trim() : "a";
         const res = await fetch(
           `${API_URL}/user/search?search=${encodeURIComponent(searchQuery)}`,
-          {
-            credentials: "include",
-          }
+          { credentials: "include" }
         );
         const text = await res.text();
         let data;
@@ -134,7 +129,7 @@ function Messages() {
     if (currentUser) fetchUsers();
   }, [search, currentUser]);
 
-  // 5. Selected User ke messages socket ke zariye fetch karna
+  // 5. Selected User messages fetch
   useEffect(() => {
     if (!selectedUser || !socket) return;
 
@@ -151,12 +146,12 @@ function Messages() {
     });
   }, [selectedUser, socket]);
 
-  // Auto scroll down to latest message
+  // Scroll down
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // 6. Send message handler
+  // Send message
   const handleSend = (e) => {
     e.preventDefault();
     if (!newMessage.trim() || !selectedUser || !socket) return;
@@ -168,10 +163,7 @@ function Messages() {
 
     socket.emit(
       "send-message",
-      {
-        receiver: receiverId,
-        content: messageText,
-      },
+      { receiver: receiverId, content: messageText },
       (response) => {
         if (!response?.success) {
           alert(response?.message || "Failed to send message.");
@@ -181,48 +173,48 @@ function Messages() {
   };
 
   return (
-    <div className="flex h-[100dvh] w-screen overflow-hidden bg-[#F3ECFF] p-0 text-gray-800 sm:p-6">
-      <div className="mx-auto flex h-full w-full max-w-[1500px] gap-0 overflow-hidden bg-white sm:rounded-[32px] sm:border sm:border-purple-200/60 sm:shadow-xl">
-        {/* LEFT PANEL - USERS LIST & SEARCH */}
+    <div className="flex h-screen w-screen overflow-hidden bg-[#F3ECFF] p-0 sm:p-4 md:p-6">
+      <div className="mx-auto flex h-full w-full max-w-[1500px] overflow-hidden bg-white sm:rounded-[24px] sm:border sm:border-purple-200 sm:shadow-lg">
+
+        {/* LEFT PANEL */}
         <div
-          className={`${selectedUser ? "hidden md:flex" : "flex"
-            } w-full flex-col border-r border-purple-100 bg-white p-5 md:w-[380px]`}
+          className={`${
+            selectedUser ? "hidden md:flex" : "flex"
+          } w-full flex-col border-r border-purple-100 bg-white p-4 md:w-[360px] h-full`}
         >
-          <div className="mb-5 flex items-center gap-3">
+          <div className="mb-4 flex items-center gap-3">
             <button
               onClick={() => navigate("/")}
-              className="rounded-2xl p-2.5 text-[#4B187E] transition hover:bg-purple-50"
+              className="rounded-xl p-2 text-[#4B187E] hover:bg-purple-50"
             >
-              <ArrowLeft size={22} />
+              <ArrowLeft size={20} />
             </button>
-            <h1 className="flex items-center gap-2 text-2xl font-black text-[#4B187E]">
-              <MessageSquare size={24} className="text-purple-600" /> Messages
+            <h1 className="flex items-center gap-2 text-xl font-black text-[#4B187E]">
+              <MessageSquare size={22} className="text-purple-600" /> Messages
             </h1>
           </div>
 
-          <div className="relative mb-4">
+          <div className="relative mb-3">
             <Search
-              size={18}
-              className="absolute left-4 top-1/2 -translate-y-1/2 text-purple-400"
+              size={16}
+              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-purple-400"
             />
             <input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search people to chat..."
-              className="w-full rounded-2xl border border-purple-200/60 bg-purple-50/50 py-3 pl-11 pr-4 text-sm outline-none focus:border-[#61269B] focus:ring-2 focus:ring-purple-200"
+              placeholder="Search people..."
+              className="w-full rounded-xl border border-purple-200 bg-purple-50/40 py-2.5 pl-10 pr-4 text-sm outline-none focus:border-[#61269B]"
             />
           </div>
 
-          <div className="flex-1 space-y-2 overflow-y-auto pr-1">
+          <div className="flex-1 space-y-1.5 overflow-y-auto pr-1">
             {loadingUsers ? (
-              <div className="py-10 text-center text-xs font-bold text-purple-600">
-                Loading users...
+              <div className="py-8 text-center text-xs font-bold text-purple-600">
+                Loading...
               </div>
             ) : users.length === 0 ? (
-              <p className="py-10 text-center text-xs text-gray-400">
-                No users found.
-              </p>
+              <p className="py-8 text-center text-xs text-gray-400">No users found.</p>
             ) : (
               users.map((u) => {
                 const userId = u._id || u.id;
@@ -233,37 +225,31 @@ function Messages() {
                   <button
                     key={userId}
                     onClick={() => setSelectedUser(u)}
-                    className={`flex w-full items-center gap-3.5 rounded-2xl p-3 text-left transition ${isSelected
-                      ? "bg-[#4B187E] text-white shadow-md shadow-purple-900/20"
-                      : "text-gray-800 hover:bg-purple-50"
-                      }`}
+                    className={`flex w-full items-center gap-3 rounded-xl p-2.5 text-left transition ${
+                      isSelected
+                        ? "bg-[#4B187E] text-white"
+                        : "text-gray-800 hover:bg-purple-50"
+                    }`}
                   >
                     {u.avatar ? (
                       <img
                         src={u.avatar}
                         alt={u.fullName}
-                        className="h-12 w-12 rounded-2xl border border-purple-200 object-cover"
+                        className="h-10 w-10 rounded-xl object-cover border border-purple-200"
                       />
                     ) : (
                       <div
-                        className={`flex h-12 w-12 items-center justify-center rounded-2xl text-lg font-black ${isSelected
-                          ? "bg-white text-[#4B187E]"
-                          : "bg-[#4B187E] text-white"
-                          }`}
+                        className={`flex h-10 w-10 items-center justify-center rounded-xl font-bold ${
+                          isSelected ? "bg-white text-[#4B187E]" : "bg-[#4B187E] text-white"
+                        }`}
                       >
                         {(u.fullName || u.userName || "U")[0].toUpperCase()}
                       </div>
                     )}
-
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-extrabold">
-                        {u.fullName || "User"}
-                      </p>
-                      <p
-                        className={`truncate text-xs ${isSelected ? "text-purple-200" : "text-gray-400"
-                          }`}
-                      >
-                        @{u.userName || "username"}
+                      <p className="truncate text-sm font-bold">{u.fullName || "User"}</p>
+                      <p className={`truncate text-xs ${isSelected ? "text-purple-200" : "text-gray-400"}`}>
+                        @{u.userName}
                       </p>
                     </div>
                   </button>
@@ -273,88 +259,62 @@ function Messages() {
           </div>
         </div>
 
-        {/* RIGHT PANEL - CHAT AREA */}
+        {/* RIGHT PANEL - CHAT */}
         <div
-          className={`${!selectedUser ? "hidden md:flex" : "flex"
-            } h-full flex-1 flex-col bg-[#F3ECFF]/30 min-w-0`}
+          className={`${
+            !selectedUser ? "hidden md:flex" : "flex"
+          } h-full flex-1 flex-col bg-[#F3ECFF]/20 min-w-0`}
         >
           {selectedUser ? (
-            <>
-              <div className="flex items-center gap-3.5 border-b border-purple-100 bg-white p-4 sm:px-6">
+            <div className="flex h-full flex-col justify-between">
+              {/* Header */}
+              <div className="flex shrink-0 items-center gap-3 border-b border-purple-100 bg-white p-3.5">
                 <button
                   onClick={() => setSelectedUser(null)}
-                  className="rounded-xl p-2 text-gray-600 hover:bg-purple-50 md:hidden"
+                  className="rounded-lg p-2 text-gray-600 hover:bg-purple-50 md:hidden"
                 >
-                  <ArrowLeft size={20} />
+                  <ArrowLeft size={18} />
                 </button>
-
                 {selectedUser.avatar ? (
                   <img
                     src={selectedUser.avatar}
                     alt={selectedUser.fullName}
-                    className="h-11 w-11 rounded-2xl border border-purple-200 object-cover"
+                    className="h-9 w-9 rounded-xl object-cover border border-purple-200"
                   />
                 ) : (
-                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#4B187E] font-black text-white">
-                    {(
-                      selectedUser.fullName ||
-                      selectedUser.userName ||
-                      "U"
-                    )[0].toUpperCase()}
+                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#4B187E] font-bold text-white text-sm">
+                    {(selectedUser.fullName || "U")[0].toUpperCase()}
                   </div>
                 )}
-
                 <div>
-                  <h2 className="text-base font-extrabold text-gray-900">
-                    {selectedUser.fullName || "User"}
-                  </h2>
-                  <p className="text-xs font-semibold text-purple-600">
-                    @{selectedUser.userName}
-                  </p>
+                  <h2 className="text-sm font-bold text-gray-900">{selectedUser.fullName}</h2>
+                  <p className="text-[11px] text-purple-600">@{selectedUser.userName}</p>
                 </div>
               </div>
 
-              <div className="flex-1 space-y-3 overflow-y-auto p-4 sm:p-6 min-h-0">
+              {/* Chat Messages */}
+              <div className="flex-1 space-y-2 overflow-y-auto p-4">
                 {loadingChat ? (
                   <div className="flex h-full items-center justify-center text-purple-600">
-                    <LoaderCircle className="animate-spin" size={28} />
+                    <LoaderCircle className="animate-spin" size={24} />
                   </div>
                 ) : messages.length === 0 ? (
-                  <div className="flex h-full flex-col items-center justify-center text-center text-gray-400">
-                    <MessageSquare size={40} className="mb-2 text-purple-300" />
-                    <p className="text-sm font-semibold">
-                      Say hi to {selectedUser.fullName || selectedUser.userName}!
-                    </p>
+                  <div className="flex h-full flex-col items-center justify-center text-gray-400">
+                    <MessageSquare size={36} className="mb-2 text-purple-300" />
+                    <p className="text-xs font-semibold">Say hi to {selectedUser.fullName}!</p>
                   </div>
                 ) : (
                   messages.map((m) => {
                     const currentUserId = currentUser?._id || currentUser?.id;
                     const isMe = String(m.sender) === String(currentUserId);
-
                     return (
-                      <div
-                        key={m._id}
-                        className={`flex ${isMe ? "justify-end" : "justify-start"
-                          }`}
-                      >
+                      <div key={m._id} className={`flex ${isMe ? "justify-end" : "justify-start"}`}>
                         <div
-                          className={`max-w-[75%] rounded-2xl px-4 py-3 text-sm font-medium shadow-sm ${isMe
-                            ? "rounded-tr-none bg-[#4B187E] text-white"
-                            : "rounded-tl-none border border-purple-100 bg-white text-gray-800"
-                            }`}
+                          className={`max-w-[75%] rounded-2xl px-3.5 py-2.5 text-sm ${
+                            isMe ? "bg-[#4B187E] text-white" : "border border-purple-100 bg-white text-gray-800"
+                          }`}
                         >
                           <p className="break-words">{m.content}</p>
-                          <p
-                            className={`mt-1 text-right text-[10px] font-medium ${isMe ? "text-purple-200" : "text-gray-400"
-                              }`}
-                          >
-                            {m.createdAt
-                              ? new Date(m.createdAt).toLocaleTimeString([], {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              })
-                              : ""}
-                          </p>
                         </div>
                       </div>
                     );
@@ -363,40 +323,37 @@ function Messages() {
                 <div ref={messagesEndRef} />
               </div>
 
+              {/* Input Form Box - Fixed at bottom */}
               <form
-
                 onSubmit={handleSend}
-                className="flex shrink-0 items-center gap-2 border-t border-purple-100 bg-white p-3 pb-[max(1rem,env(safe-area-inset-bottom))] sm:gap-3 sm:p-4"
+                className="flex shrink-0 items-center gap-2 border-t border-purple-100 bg-white p-3"
               >
                 <input
                   type="text"
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}
                   placeholder="Type a message..."
-                  className="min-w-0 flex-1 rounded-2xl border border-purple-200/70 bg-purple-50/40 px-4 py-3 text-base text-gray-900 outline-none focus:border-[#61269B] focus:ring-2 focus:ring-purple-200" />
+                  className="min-w-0 flex-1 rounded-xl border border-purple-200 bg-purple-50/40 px-3.5 py-2.5 text-sm outline-none focus:border-[#61269B]"
+                />
                 <button
                   type="submit"
                   disabled={!newMessage.trim()}
-                  className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#4B187E] text-white shadow-md shadow-purple-900/20 transition hover:bg-[#61269B] disabled:opacity-50"
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#4B187E] text-white transition hover:bg-[#61269B] disabled:opacity-50"
                 >
-                  <Send size={18} />
+                  <Send size={16} />
                 </button>
               </form>
-            </>
+            </div>
           ) : (
             <div className="flex h-full flex-col items-center justify-center p-6 text-center text-gray-400">
-              <MessageSquare size={52} className="mb-3 text-purple-300" />
-              <h3 className="text-lg font-extrabold text-[#4B187E]">
-                Your Messages
-              </h3>
-              <p className="mt-1 max-w-xs text-xs text-gray-500">
-                Select a user from the left list to start real-time messaging.
-              </p>
+              <MessageSquare size={48} className="mb-2 text-purple-300" />
+              <h3 className="text-base font-bold text-[#4B187E]">Your Messages</h3>
+              <p className="text-xs text-gray-500">Select a user to start chatting.</p>
             </div>
           )}
         </div>
       </div>
-    </div >
+    </div>
   );
 }
 
