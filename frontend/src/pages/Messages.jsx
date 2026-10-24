@@ -173,14 +173,12 @@ function Messages() {
   };
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-[#F3ECFF] p-0 sm:p-4 md:p-6">
-      <div className="mx-auto flex h-full w-full max-w-[1500px] overflow-hidden bg-white sm:rounded-[24px] sm:border sm:border-purple-200 sm:shadow-lg">
+<div className="flex h-[calc(100dvh-68px)] w-screen overflow-hidden bg-[#F3ECFF] p-0 sm:h-screen sm:p-4 md:p-6">      <div className="mx-auto flex h-full w-full max-w-[1500px] overflow-hidden bg-white sm:rounded-[24px] sm:border sm:border-purple-200 sm:shadow-lg">
 
         {/* LEFT PANEL */}
         <div
-          className={`${
-            selectedUser ? "hidden md:flex" : "flex"
-          } w-full flex-col border-r border-purple-100 bg-white p-4 md:w-[360px] h-full`}
+          className={`${selectedUser ? "hidden md:flex" : "flex"
+            } w-full flex-col border-r border-purple-100 bg-white p-4 md:w-[360px] h-full`}
         >
           <div className="mb-4 flex items-center gap-3">
             <button
@@ -225,11 +223,10 @@ function Messages() {
                   <button
                     key={userId}
                     onClick={() => setSelectedUser(u)}
-                    className={`flex w-full items-center gap-3 rounded-xl p-2.5 text-left transition ${
-                      isSelected
+                    className={`flex w-full items-center gap-3 rounded-xl p-2.5 text-left transition ${isSelected
                         ? "bg-[#4B187E] text-white"
                         : "text-gray-800 hover:bg-purple-50"
-                    }`}
+                      }`}
                   >
                     {u.avatar ? (
                       <img
@@ -239,9 +236,8 @@ function Messages() {
                       />
                     ) : (
                       <div
-                        className={`flex h-10 w-10 items-center justify-center rounded-xl font-bold ${
-                          isSelected ? "bg-white text-[#4B187E]" : "bg-[#4B187E] text-white"
-                        }`}
+                        className={`flex h-10 w-10 items-center justify-center rounded-xl font-bold ${isSelected ? "bg-white text-[#4B187E]" : "bg-[#4B187E] text-white"
+                          }`}
                       >
                         {(u.fullName || u.userName || "U")[0].toUpperCase()}
                       </div>
@@ -261,9 +257,8 @@ function Messages() {
 
         {/* RIGHT PANEL - CHAT */}
         <div
-          className={`${
-            !selectedUser ? "hidden md:flex" : "flex"
-          } h-full flex-1 flex-col bg-[#F3ECFF]/20 min-w-0`}
+          className={`${!selectedUser ? "hidden md:flex" : "flex"
+            } h-full flex-1 flex-col bg-[#F3ECFF]/20 min-w-0`}
         >
           {selectedUser ? (
             <div className="flex h-full flex-col justify-between">
@@ -310,9 +305,8 @@ function Messages() {
                     return (
                       <div key={m._id} className={`flex ${isMe ? "justify-end" : "justify-start"}`}>
                         <div
-                          className={`max-w-[75%] rounded-2xl px-3.5 py-2.5 text-sm ${
-                            isMe ? "bg-[#4B187E] text-white" : "border border-purple-100 bg-white text-gray-800"
-                          }`}
+                          className={`max-w-[75%] rounded-2xl px-3.5 py-2.5 text-sm ${isMe ? "bg-[#4B187E] text-white" : "border border-purple-100 bg-white text-gray-800"
+                            }`}
                         >
                           <p className="break-words">{m.content}</p>
                         </div>
@@ -324,10 +318,10 @@ function Messages() {
               </div>
 
               {/* Input Form Box - Fixed at bottom */}
-              <form
-                onSubmit={handleSend}
-                className="flex shrink-0 items-center gap-2 border-t border-purple-100 bg-white p-3"
-              >
+             <form
+  onSubmit={handleSend}
+  className="relative z-10 flex shrink-0 items-center gap-2 border-t border-purple-100 bg-white p-3 pb-3 sm:gap-3 sm:p-4"
+>
                 <input
                   type="text"
                   value={newMessage}
