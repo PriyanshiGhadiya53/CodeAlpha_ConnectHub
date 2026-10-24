@@ -16,10 +16,14 @@ const server = http.createServer(app);
 
 // Initialize Socket.io instance
 const io = new Server(server, {
-    cors: {
-        origin: "connecthub-network.vercel.app",
-        credentials: true,
-    },
+  cors: {
+    origin: [
+      "http://localhost:5173",
+      "https://connecthub-network.vercel.app",
+    ],
+    methods: ["GET", "POST"],
+    credentials: true,
+  },
 });
 
 io.on("connection", (socket) => {
