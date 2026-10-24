@@ -173,8 +173,8 @@ function Messages() {
   };
 
   return (
-<div className="flex h-[calc(100dvh-68px)] w-screen overflow-hidden bg-[#F3ECFF] p-0 sm:h-screen sm:p-4 md:p-6">      <div className="mx-auto flex h-full w-full max-w-[1500px] overflow-hidden bg-white sm:rounded-[24px] sm:border sm:border-purple-200 sm:shadow-lg">
-
+<div className="fixed inset-0 bottom-[68px] z-[90] flex overflow-hidden bg-[#F3ECFF] p-0 lg:static lg:inset-auto lg:z-auto lg:h-screen lg:w-screen lg:p-6">
+  <div className="mx-auto flex h-full w-full max-w-[1500px] overflow-hidden bg-white lg:rounded-[24px] lg:border lg:border-purple-200 lg:shadow-lg">
         {/* LEFT PANEL */}
         <div
           className={`${selectedUser ? "hidden md:flex" : "flex"
@@ -288,8 +288,7 @@ function Messages() {
               </div>
 
               {/* Chat Messages */}
-              <div className="flex-1 space-y-2 overflow-y-auto p-4">
-                {loadingChat ? (
+<div className="flex-1 min-h-0 space-y-2 overflow-y-auto p-4 pb-8">                {loadingChat ? (
                   <div className="flex h-full items-center justify-center text-purple-600">
                     <LoaderCircle className="animate-spin" size={24} />
                   </div>
